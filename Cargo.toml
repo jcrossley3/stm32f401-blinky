@@ -10,7 +10,7 @@ edition = "2018"
 cortex-m = "0.5.8"
 cortex-m-rt = "0.6.7"
 panic-halt = "0.2.0"
-stm32f0xx-hal =  { version = "0.12.0", features = ["stm32f091"]}
+stm32f4xx-hal =  { version = "0.8.3", features = ["stm32f401"]}
 
 [profile.release]
 debug = true
