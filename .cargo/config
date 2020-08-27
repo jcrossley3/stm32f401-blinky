@@ -1,5 +1,4 @@
 [target.thumbv7em-none-eabi]
-runner = 'gdb'
 rustflags = [
   "-C", "link-arg=-Tlink.x",
 ]
