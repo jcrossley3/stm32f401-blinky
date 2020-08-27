@@ -12,27 +12,23 @@ use cortex_m_rt::entry;
 
 #[entry]
 fn main() -> ! {
-    if let (Some(mut p), Some(cp)) = (stm32::Peripherals::take(), Peripherals::take()) {
-        cortex_m::interrupt::free(move |cs| {
-            // Configure clock to 8 MHz (i.e. the default) and freeze it
-            let mut rcc = p.RCC.constrain().cfgr.sysclk(8.mhz()).freeze();
+    if let (Some(p), Some(cp)) = (stm32::Peripherals::take(), Peripherals::take()) {
+        // Configure clock to 8 MHz (i.e. the default) and freeze it
+        let rcc = p.RCC.constrain().cfgr.sysclk(48.mhz()).freeze();
 
-            // (Re-)configure PA5 as output
-            let gpioa = p.GPIOA.split();
-            let mut led = gpioa.pa5.into_push_pull_output();
+        // (Re-)configure PA5 as output
+        let gpioa = p.GPIOA.split();
+        let mut led = gpioa.pa5.into_push_pull_output();
 
-            // Get delay provider
-            let mut delay = Delay::new(cp.SYST, rcc);
+        // Get delay provider
+        let mut delay = Delay::new(cp.SYST, rcc);
 
-            // Toggle the LED roughly every second
-            loop {
-                led.toggle();
-                delay.delay_ms(1_000_u16);
-            }
-        });
+        // Toggle the LED roughly every second
+        loop {
+            led.toggle().unwrap();
+            delay.delay_ms(1_000_u16);
+        }
     }
 
-    loop {
-        continue;
-    }
+    loop {}
 }
