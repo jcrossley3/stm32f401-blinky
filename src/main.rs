@@ -13,7 +13,7 @@ use cortex_m_rt::entry;
 #[entry]
 fn main() -> ! {
     if let (Some(p), Some(cp)) = (stm32::Peripherals::take(), Peripherals::take()) {
-        // Configure clock to 8 MHz (i.e. the default) and freeze it
+        // Configure clock to 48 MHz and freeze it
         let rcc = p.RCC.constrain().cfgr.sysclk(48.mhz()).freeze();
 
         // (Re-)configure PA5 as output
@@ -30,5 +30,7 @@ fn main() -> ! {
         }
     }
 
-    loop {}
+    loop {
+        continue;
+    }
 }
