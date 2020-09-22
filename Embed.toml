@@ -1,8 +1,8 @@
 [default.probe]
 # USB vendor ID
-# usb_vid = "1337"
+usb_vid = "0483"
 # USB product ID
-# usb_pid = "1337"
+usb_pid = "374b"
 # Serial number
 # serial = "12345678"
 # The protocol to be used for communicating with the target.
@@ -31,7 +31,7 @@ halt_afterwards = false
 
 [default.general]
 # The chip name of the chip to be debugged.
-# chip = "name"
+chip = "STM32F401RETx"
 # A list of chip descriptions to be loaded during runtime.
 chip_descriptions = []
 # The default log level to be used. Possible values are one of:
