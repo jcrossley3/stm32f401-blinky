@@ -7,12 +7,30 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-cortex-m = "0.5.8"
-cortex-m-rt = "0.6.7"
-panic-halt = "0.2.0"
+cortex-m = "0.6.2"
+cortex-m-rt = "0.6.12"
+cortex-m-rtic = "0.5.3"
 stm32f4xx-hal =  { version = "0.8.3", features = ["stm32f401"]}
+nucleo-f401re = "0.4.1"
+rtt-target = {version = "0.2.2", features = ["cortex-m"] }
+panic-rtt-target = { version = "0.1.1", features = ["cortex-m"] }
+rtt-logger = "0.1.0"
+log = "0.4.11"
+drogue-network = "0.2.0"
+drogue-esp8266 = "0.3.0"
+heapless = "0.5.5"
 
 [profile.release]
 debug = true
 lto = true
 opt-level = "s"
+
+[term]
+verbose = false        # whether cargo provides verbose output
+color = 'auto'         # whether cargo colorizes output
+
+# [dependencies.drogue-esp8266]
+# path = "../drogue-esp8266"
+
+# [dependencies.drogue-network]
+# path = "../drogue-network"
