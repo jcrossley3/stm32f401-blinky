@@ -2,9 +2,7 @@
 #![no_std]
 
 use nucleo_f401re::{
-    pac::{
-        USART6,
-    },
+    pac::USART6,
     hal::{
         prelude::*,
         serial::{
@@ -34,6 +32,7 @@ use drogue_esp8266::{
     ingress::Ingress,
     adapter::Adapter,
     protocol::Response,
+    protocol::WiFiMode,
 };
 use drogue_network::{
     tcp::{
@@ -48,7 +47,8 @@ use drogue_network::{
 use rtic::app;
 use rtic::cyccnt::U32Ext;
 
-// use cortex_m::peripheral::Peripherals;
+const WIFI_SSID: &'static str = include_str!("wifi.ssid.txt");
+const WIFI_PASSWORD: &'static str = include_str!("wifi.password.txt");
 
 static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Debug);
 const DIGEST_DELAY: u32 = 200;
@@ -71,7 +71,7 @@ const APP: () = {
         log::set_max_level(log::LevelFilter::Trace);
 
         // Enable CYCNT
-        let mut cmp = cortex_m::Peripherals::take().unwrap();
+        let mut cmp = ctx.core;
         cmp.DWT.enable_cycle_counter();
 
         let device: nucleo_f401re::pac::Peripherals = ctx.device;
@@ -121,13 +121,6 @@ const APP: () = {
             unsafe { &mut NOTIFICATION_QUEUE },
         ).unwrap();
 
-        //let ingress = esp8266::adapter::Ingress::new();
-
-        //let timer = Timer::tim3(device.TIM3, 1.hz(), clocks);
-
-        //let (client, ingress) = builder.build(queues);
-        //let esp = ESPAdapter::new(client);
-
         ctx.spawn.digest().unwrap();
 
         info!("initialized");
@@ -161,8 +154,10 @@ const APP: () = {
         let result = adapter.get_firmware_info();
         info!("firmware: {:?}", result);
 
-        //let result = ctx.resources.adapter.send(esp8266::protocol::Command::JoinAp { ssid: "oddly", password: "scarletbegonias" });
-        let result = adapter.join("oddly", "scarletbegonias");
+        let result = adapter.set_mode(WiFiMode::Station);
+        info!("set mode {:?}", result);
+
+        let result = adapter.join(WIFI_SSID, WIFI_PASSWORD);
         info!("joined wifi {:?}", result);
 
         let result = adapter.get_ip_address();
@@ -175,7 +170,7 @@ const APP: () = {
         info!("socket {:?}", socket);
 
         let socket_addr = HostSocketAddr::new(
-	    HostAddr::ipv4([192,168,1,245]),
+	    HostAddr::ipv4([64,233,185,139]),
             80,
         );
 
@@ -183,7 +178,7 @@ const APP: () = {
 
         info!("socket connected {:?}", result);
 
-        let result = network.write(&mut socket, b"GET / HTTP/1.1\r\nhost:192.168.1.245\r\n\r\n").unwrap();
+        let result = network.write(&mut socket, b"GET / HTTP/1.1\r\nhost:64.233.185.139\r\n\r\n").unwrap();
 
         info!("sent {:?}", result);
 
