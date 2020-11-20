@@ -18,6 +18,7 @@ rtt-logger = "0.1.0"
 log = "0.4.11"
 drogue-network = "0.2.0"
 drogue-esp8266 = "0.3.0"
+drogue-http-client = "0.0.2"
 heapless = "0.5.5"
 
 [profile.release]

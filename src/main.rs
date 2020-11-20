@@ -13,7 +13,7 @@ use nucleo_f401re::{
         },
     },
 };
-
+use core::str::from_utf8;
 use rtt_logger::RTTLogger;
 use log::{info, LevelFilter};
 use rtt_target::rtt_init_print;
@@ -25,8 +25,13 @@ use heapless::{
     consts::{
         U2,
         U16,
+	U512,
+	U1024,
     },
 };
+
+use drogue_http_client::{tcp::TcpSocketSinkSource, BufferResponseHandler, HttpConnection, Source};
+
 use drogue_esp8266::{
     initialize,
     ingress::Ingress,
@@ -163,48 +168,51 @@ const APP: () = {
         let result = adapter.get_ip_address();
         info!("IP {:?}", result);
 
-        let network = adapter.into_network_stack();
+        let mut network = adapter.into_network_stack();
         info!("network intialized");
 
         let socket = network.open(Mode::Blocking).unwrap();
         info!("socket {:?}", socket);
 
         let socket_addr = HostSocketAddr::new(
-	    HostAddr::ipv4([64,233,185,139]),
-            80,
+	    HostAddr::ipv4([192,168,0,110]),
+            8080,
         );
 
         let mut socket = network.connect(socket, socket_addr).unwrap();
 
         info!("socket connected {:?}", result);
 
-        let result = network.write(&mut socket, b"GET / HTTP/1.1\r\nhost:64.233.185.139\r\n\r\n").unwrap();
+	let mut tcp = TcpSocketSinkSource::from(&mut network, &mut socket);
 
-        info!("sent {:?}", result);
+	let con = HttpConnection::<U1024>::new();
 
-        loop {
-            let mut buffer = [0; 128];
-            let result = network.read(&mut socket, &mut buffer);
-            match result {
-                Ok(len) => {
-                    if len > 0 {
-                        let s = core::str::from_utf8(&buffer[0..len]);
-                        match s {
-                            Ok(s) => {
-                                info!("recv: {} ", s);
-                            }
-                            Err(_) => {
-                                info!("recv: {} bytes (not utf8)", len);
-                            }
-                        }
-                    }
-                }
-                Err(e) => {
-                    info!("ERR: {:?}", e);
-                    break;
-                }
-            }
-        }
+	let data = r#"{"temp": 41.23}"#;
+
+	let handler = BufferResponseHandler::<U1024>::new();
+
+	log::info!("Starting request...");
+
+	let mut req = con
+            .post("/publish/device_id/foo")
+            .headers(&[("Host", "http-endpoint.drogue-iot.10.109.177.179.nip.io"), ("Content-Type", "text/json")])
+            .handler(handler)
+            .execute_with::<_, U512>(&mut tcp, Some(data.as_bytes()));
+
+	log::info!("Request sent, piping data...");
+
+	tcp.pipe_data(&mut req);
+
+	log::info!("Done piping data, checking result");
+
+	let (_, handler) = req.complete();
+
+	log::info!(
+            "Result: {} {}, Payload: {:?}",
+            handler.code(),
+            handler.reason(),
+            from_utf8(handler.payload())
+	);
 
         loop {
             continue;
