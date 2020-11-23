@@ -26,10 +26,6 @@ debug = true
 lto = true
 opt-level = "s"
 
-[term]
-verbose = false        # whether cargo provides verbose output
-color = 'auto'         # whether cargo colorizes output
-
 # [dependencies.drogue-esp8266]
 # path = "../drogue-esp8266"
 

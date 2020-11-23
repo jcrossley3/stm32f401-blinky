@@ -195,13 +195,14 @@ const APP: () = {
 
 	let mut req = con
             .post("/publish/device_id/foo")
-            .headers(&[("Host", "http-endpoint.drogue-iot.10.109.177.179.nip.io"), ("Content-Type", "text/json")])
+            .headers(&[("Host", "http-endpoint.drogue-iot.10.109.177.179.nip.io"),
+		       ("Content-Type", "text/json")])
             .handler(handler)
             .execute_with::<_, U512>(&mut tcp, Some(data.as_bytes()));
 
 	log::info!("Request sent, piping data...");
 
-	tcp.pipe_data(&mut req);
+	tcp.pipe_data(&mut req).unwrap();
 
 	log::info!("Done piping data, checking result");
 
