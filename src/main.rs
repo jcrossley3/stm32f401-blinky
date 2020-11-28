@@ -1,72 +1,41 @@
 #![no_main]
 #![no_std]
 
-use nucleo_f401re::{
-    pac::USART6,
-    hal::{
-        prelude::*,
-        serial::{
-            config::{Config, Parity, StopBits},
-            Serial,
-            Tx,
-            Rx,
-        },
-    },
-};
+// Network-specfic values
+const WIFI_SSID: &str = include_str!("wifi.ssid.txt");
+const WIFI_PASSWORD: &str = include_str!("wifi.password.txt");
+const HOST: &str = "192.168.0.110";
+const HOST_HEADER: &str = "http-endpoint.drogue-iot.10.104.208.20.nip.io";
+
+mod device;
+
 use core::str::from_utf8;
-use rtt_logger::RTTLogger;
+use core::str::FromStr;
+use heapless::consts::{U512, U1024};
+
 use log::{info, LevelFilter};
+use rtt_logger::RTTLogger;
 use rtt_target::rtt_init_print;
 use panic_rtt_target as _;
 
-use heapless::{
-    spsc::Queue,
-    i,
-    consts::{
-        U2,
-        U16,
-	U512,
-	U1024,
-    },
-};
-
-use drogue_http_client::{tcp::TcpSocketSinkSource, BufferResponseHandler, HttpConnection, Source};
-
-use drogue_esp8266::{
-    initialize,
-    ingress::Ingress,
-    adapter::Adapter,
-    protocol::Response,
-    protocol::WiFiMode,
-};
-use drogue_network::{
-    tcp::{
-        Mode,
-        TcpStack,
-    },
-    addr::{
-        HostSocketAddr,
-        HostAddr,
-    },
-};
 use rtic::app;
 use rtic::cyccnt::U32Ext;
 
-const WIFI_SSID: &'static str = include_str!("wifi.ssid.txt");
-const WIFI_PASSWORD: &'static str = include_str!("wifi.password.txt");
+use drogue_http_client::{tcp::TcpSocketSinkSource, BufferResponseHandler, HttpConnection, Source};
+use drogue_esp8266::{ingress::Ingress, protocol::WiFiMode};
+use drogue_network::{
+    tcp::{Mode, TcpStack},
+    addr::{HostSocketAddr, HostAddr},
+};
 
 static LOGGER: RTTLogger = RTTLogger::new(LevelFilter::Debug);
 const DIGEST_DELAY: u32 = 200;
 
-type SerialTx = Tx<USART6>;
-type SerialRx = Rx<USART6>;
-type ESPAdapter = Adapter<'static, SerialTx>;
-
 #[app(device = nucleo_f401re::pac, peripherals = true, monotonic = rtic::cyccnt::CYCCNT)]
 const APP: () = {
     struct Resources {
-        adapter: Option<ESPAdapter>,
-        ingress: Ingress<'static, SerialRx>,
+        adapter: Option<device::ESPAdapter>,
+        ingress: Ingress<'static, device::SerialRx>,
     }
 
     #[init(spawn = [digest])]
@@ -79,52 +48,7 @@ const APP: () = {
         let mut cmp = ctx.core;
         cmp.DWT.enable_cycle_counter();
 
-        let device: nucleo_f401re::pac::Peripherals = ctx.device;
-
-        let rcc = device.RCC.constrain();
-        let clocks = rcc.cfgr.sysclk(84.mhz()).freeze();
-
-        let gpioa = device.GPIOA.split();
-        let gpioc = device.GPIOC.split();
-
-        let pa11 = gpioa.pa11;
-        let pa12 = gpioa.pa12;
-
-        // SERIAL pins for USART6
-        let tx_pin = pa11.into_alternate_af8();
-        let rx_pin = pa12.into_alternate_af8();
-
-        // enable pin
-        let mut en = gpioc.pc10.into_push_pull_output();
-        // reset pin
-        let mut reset = gpioc.pc12.into_push_pull_output();
-
-        let usart6 = device.USART6;
-
-        let mut serial = Serial::usart6(
-            usart6,
-            (tx_pin, rx_pin),
-            Config {
-                baudrate: 115_200.bps(),
-                parity: Parity::ParityNone,
-                stopbits: StopBits::STOP1,
-                ..Default::default()
-            },
-            clocks,
-        ).unwrap();
-
-        serial.listen(nucleo_f401re::hal::serial::Event::Rxne);
-        let (tx, rx) = serial.split();
-
-        static mut RESPONSE_QUEUE: Queue<Response, U2> = Queue(i::Queue::new());
-        static mut NOTIFICATION_QUEUE: Queue<Response, U16> = Queue(i::Queue::new());
-
-        let (adapter, ingress) = initialize(
-            tx, rx,
-            &mut en, &mut reset,
-            unsafe { &mut RESPONSE_QUEUE },
-            unsafe { &mut NOTIFICATION_QUEUE },
-        ).unwrap();
+        let (adapter, ingress) = device::network_adapter(ctx.device);
 
         ctx.spawn.digest().unwrap();
 
@@ -175,7 +99,7 @@ const APP: () = {
         info!("socket {:?}", socket);
 
         let socket_addr = HostSocketAddr::new(
-	    HostAddr::ipv4([192,168,0,110]),
+	    HostAddr::from_str(HOST).unwrap(),
             8080,
         );
 
@@ -187,6 +111,7 @@ const APP: () = {
 
 	let con = HttpConnection::<U1024>::new();
 
+	// dummy test data
 	let data = r#"{"temp": 41.23}"#;
 
 	let handler = BufferResponseHandler::<U1024>::new();
@@ -195,7 +120,7 @@ const APP: () = {
 
 	let mut req = con
             .post("/publish/device_id/foo")
-            .headers(&[("Host", "http-endpoint.drogue-iot.10.109.177.179.nip.io"),
+            .headers(&[("Host", HOST_HEADER),
 		       ("Content-Type", "text/json")])
             .handler(handler)
             .execute_with::<_, U512>(&mut tcp, Some(data.as_bytes()));
