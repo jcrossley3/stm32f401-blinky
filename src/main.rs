@@ -5,7 +5,7 @@
 const WIFI_SSID: &str = include_str!("wifi.ssid.txt");
 const WIFI_PASSWORD: &str = include_str!("wifi.password.txt");
 const HOST: &str = "192.168.0.110";
-const HOST_HEADER: &str = "http-endpoint.drogue-iot.10.104.208.20.nip.io";
+const HOST_HEADER: &str = "http-endpoint.drogue-iot.10.96.168.111.nip.io";
 
 mod device;
 
@@ -119,7 +119,7 @@ const APP: () = {
 	log::info!("Starting request...");
 
 	let mut req = con
-            .post("/publish/device_id/foo")
+            .post("/publish/esp8266/dummy")
             .headers(&[("Host", HOST_HEADER),
 		       ("Content-Type", "text/json")])
             .handler(handler)
