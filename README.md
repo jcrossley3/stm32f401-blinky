@@ -1,9 +1,13 @@
-# stm32f401-blinky
+# stm32f401-esp8266
 
-Plug in your board and run this:
+This should attempt to post some data to your drogue-cloud
+http-endpoint running on your minikube cluster.
 
+First, set the const values at the top of <src/main.rs> appropriately
+for your local network.
+
+Then plug in your board and run this:
+
+    $ cargo install cargo-embed
     $ cargo embed
 
-That should attempt to hit a google server after connecting to your
-SSID with a password, both of which are expected to be stored in files
-beneath src/.
