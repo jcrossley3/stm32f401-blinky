@@ -99,7 +99,7 @@ const APP: () = {
         info!("socket {:?}", socket);
 
         let socket_addr = HostSocketAddr::new(
-	    HostAddr::from_str(HOST).unwrap(),
+            HostAddr::from_str(HOST).unwrap(),
             8080,
         );
 
@@ -107,38 +107,38 @@ const APP: () = {
 
         info!("socket connected {:?}", result);
 
-	let mut tcp = TcpSocketSinkSource::from(&mut network, &mut socket);
+        let mut tcp = TcpSocketSinkSource::from(&mut network, &mut socket);
 
-	let con = HttpConnection::<U1024>::new();
+        let con = HttpConnection::<U1024>::new();
 
-	// dummy test data
-	let data = r#"{"temp": 41.23}"#;
+        // dummy test data
+        let data = r#"{"temp": 41.23}"#;
 
-	let handler = BufferResponseHandler::<U1024>::new();
+        let handler = BufferResponseHandler::<U1024>::new();
 
-	log::info!("Starting request...");
+        log::info!("Starting request...");
 
-	let mut req = con
+        let mut req = con
             .post("/publish/esp8266/dummy")
             .headers(&[("Host", HOST_HEADER),
-		       ("Content-Type", "text/json")])
+                       ("Content-Type", "text/json")])
             .handler(handler)
             .execute_with::<_, U512>(&mut tcp, Some(data.as_bytes()));
 
-	log::info!("Request sent, piping data...");
+        log::info!("Request sent, piping data...");
 
-	tcp.pipe_data(&mut req).unwrap();
+        tcp.pipe_data(&mut req).unwrap();
 
-	log::info!("Done piping data, checking result");
+        log::info!("Done piping data, checking result");
 
-	let (_, handler) = req.complete();
+        let (_, handler) = req.complete();
 
-	log::info!(
+        log::info!(
             "Result: {} {}, Payload: {:?}",
             handler.code(),
             handler.reason(),
             from_utf8(handler.payload())
-	);
+        );
 
         loop {
             continue;
